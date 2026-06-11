@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DroneFleet AI</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: #111827;
+      color: white;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #4f46e5;
+      display: grid;
+      place-items: center;
+      font-weight: bold;
+    }
+
+    .brand-name {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .brand-name span {
+      color: #60a5fa;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-chip,
+    .tick-chip {
+      background: #1f2937;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 14px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 8px;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 320px 1fr 320px;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .panel h3 {
+      margin-bottom: 14px;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
+    .control-block {
+      margin-bottom: 14px;
+    }
+
+    .input-label,
+    .control-block label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .coord-input,
+    select,
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .speed-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .speed-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 999px;
+      background: #e5e7eb;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .speed-btn.active {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .inline-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    #map {
+      width: 100%;
+      height: 520px;
+      border-radius: 12px;
+    }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .chart-panel {
+      min-height: 300px;
+    }
+
+    .chart-panel canvas {
+      width: 100% !important;
+      height: 220px !important;
+    }
+
+    .queue-grid,
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .queue-box,
+    .stat-card {
+      padding: 14px;
+      border-radius: 12px;
+      text-align: center;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+
+    .q1 { background: #fef3c7; }
+    .q2 { background: #dbeafe; }
+    .q3 { background: #dcfce7; }
+    .q4 { background: #ffe4e6; }
+
+    .queue-value,
+    .stat-number {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .queue-label,
+    .stat-text {
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .leaderboard {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .leaderboard th,
+    .leaderboard td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+    }
+
+    .algo-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .algo-line {
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .algo-tag {
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .blue { background: #2563eb; }
+    .green { background: #16a34a; }
+    .purple { background: #7c3aed; }
+    .red { background: #dc2626; }
+
+    .drone-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    @media (max-width: 1200px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-badge">✦</div>
+      <div class="brand-name">DroneFleet <span>AI</span></div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="status-chip">
+        <span class="dot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+      <div class="tick-chip">Tick: <span id="tickValue">0</span></div>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside>
+      <section class="panel">
+        <h3>⚙ Simulation</h3>
+
+        <div class="button-row">
+          <button id="startBtn" class="btn btn-primary">▶ Start</button>
+          <button id="pauseBtn" class="btn btn-secondary">⏸ Pause</button>
+          <button id="resetBtn" class="btn btn-secondary">↺ Reset</button>
+        </div>
+
+        <div class="control-block">
+          <label class="input-label">Input Mode</label>
+          <select id="inputMode" class="coord-input">
+            <option value="place" selected>Place Name</option>
+            <option value="coords">Latitude / Longitude</option>
+          </select>
+        </div>
+
+        <div class="control-block">
+          <label class="input-label">Number of Drones</label>
+          <input id="droneCount" type="range" min="1" max="5" value="2" />
+          <div class="inline-row">
+            <span>Selected</span>
+            <strong id="droneCountValue">2</strong>
+          </div>
+        </div>
+
+        <div id="placeInputs">
+          <div class="control-block">
+            <label class="input-label">Start Place</label>
+            <input id="startPlace" class="coord-input" type="text" value="Coimbatore" />
+          </div>
+
+          <div class="control-block">
+            <label class="input-label">Destination Place</label>
+            <input id="goalPlace" class="coord-input" type="text" value="Chennai" />
+          </div>
+        </div>
+
+        <div id="coordInputs" style="display:none;">
+          <div class="control-block">
+            <label class="input-label">Start Latitude</label>
+            <input id="startLat" class="coord-input" type="number" step="0.000001" value="11.0168" />
+          </div>
+
+          <div class="control-block">
+            <label class="input-label">Start Longitude</label>
+            <input id="startLng" class="coord-input" type="number" step="0.000001" value="76.9558" />
+          </div>
+
+          <div class="control-block">
+            <label class="input-label">Destination Latitude</label>
+            <input id="goalLat" class="coord-input" type="number" step="0.000001" value="13.0827" />
+          </div>
+
+          <div class="control-block">
+            <label class="input-label">Destination Longitude</label>
+            <input id="goalLng" class="coord-input" type="number" step="0.000001" value="80.2707" />
+          </div>
+        </div>
+
+        <div class="control-block">
+          <label>Speed</label>
+          <div class="speed-pills">
+            <button class="speed-btn active" data-speed="1">1×</button>
+            <button class="speed-btn" data-speed="2">2×</button>
+            <button class="speed-btn" data-speed="5">5×</button>
+            <button class="speed-btn" data-speed="10">10×</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>🌦 Environment</h3>
+
+        <div class="control-block">
+          <div class="inline-row"><span>Wind</span><strong id="windValue">0.30</strong></div>
+          <input type="range" id="windSlider" min="0" max="1" step="0.01" value="0.30" />
+        </div>
+
+        <div class="control-block">
+          <div class="inline-row"><span>Rain</span><strong id="rainValue">0.10</strong></div>
+          <input type="range" id="rainSlider" min="0" max="1" step="0.01" value="0.10" />
+        </div>
+
+        <div class="control-block">
+          <div class="inline-row"><span>Traffic</span><strong id="trafficValue">0.20</strong></div>
+          <input type="range" id="trafficSlider" min="0" max="1" step="0.01" value="0.20" />
+        </div>
+
+        <button id="applyEnvBtn" class="btn btn-primary full-width">Apply Environment</button>
+      </section>
+
+      <section class="panel">
+        <h3>📦 Task Queue</h3>
+        <div class="queue-grid">
+          <div class="queue-box q1">
+            <div class="queue-value" id="pendingCount">2</div>
+            <div class="queue-label">Pending</div>
+          </div>
+          <div class="queue-box q2">
+            <div class="queue-value" id="inFlightCount">0</div>
+            <div class="queue-label">In-Flight</div>
+          </div>
+          <div class="queue-box q3">
+            <div class="queue-value" id="completedCount">0</div>
+            <div class="queue-label">Completed</div>
+          </div>
+          <div class="queue-box q4">
+            <div class="queue-value" id="cancelledCount">0</div>
+            <div class="queue-label">Cancelled</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <section>
+      <section class="panel">
+        <div id="map"></div>
+      </section>
+
+      <section class="charts-row">
+        <div class="panel chart-panel">
+          <h3>📈 Rewards</h3>
+          <canvas id="rewardChart"></canvas>
+        </div>
+
+        <div class="panel chart-panel">
+          <h3>🔋 Battery</h3>
+          <canvas id="batteryChart"></canvas>
+        </div>
+
+        <div class="panel chart-panel">
+          <h3>🎯 Task Status</h3>
+          <canvas id="taskChart"></canvas>
+        </div>
+      </section>
+    </section>
+
+    <aside>
+      <section class="panel">
+        <h3>🏆 Leaderboard</h3>
+        <table class="leaderboard">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Drone</th>
+              <th>Deliveries</th>
+              <th>Reward</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h3>📊 Global Stats</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="totalDistance">0</div>
+            <div class="stat-text">Total Distance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="avgBattery">100%</div>
+            <div class="stat-text">Avg Battery</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="collisionsAvoided">0</div>
+            <div class="stat-text">Collisions Avoided</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="deliveriesDone">0</div>
+            <div class="stat-text">Deliveries</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>🧠 Algorithms Active</h3>
+        <div class="algo-stack">
+          <div class="algo-line"><span class="algo-tag blue">MARL</span> Multi-Agent RL</div>
+          <div class="algo-line"><span class="algo-tag green">A*</span> Pathfinding</div>
+          <div class="algo-line"><span class="algo-tag purple">Q-Learn</span> Action Policy</div>
+          <div class="algo-line"><span class="algo-tag red">VO</span> Collision Avoidance</div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    let map;
+    let timer = null;
+    let running = false;
+    let tick = 0;
+    let speedMultiplier = 1;
+
+    let rewardChart;
+    let batteryChart;
+    let taskChart;
+
+    let startMarker = null;
+    let goalMarker = null;
+    let routeLine = null;
+
+    const droneColors = ["#4f46e5", "#16a34a", "#f59e0b", "#dc2626", "#0891b2"];
+
+    const state = {
+      wind: 0.30,
+      rain: 0.10,
+      traffic: 0.20,
+      pending: 2,
+      inFlight: 0,
+      completed: 0,
+      cancelled: 0,
+      collisionsAvoided: 0,
+      drones: [],
+      startLabel: "",
+      goalLabel: ""
+    };
+
+    function initMap() {
+      map = L.map("map").setView([11.0168, 76.9558], 7);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+    }
+
+    function createDroneIcon(color, label) {
+      return L.divIcon({
+        className: "",
+        html: '<div class="drone-dot" style="background:' + color + ';">' + label + '</div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+    }
+
+    function toggleInputMode() {
+      const mode = document.getElementById("inputMode").value;
+      const placeInputs = document.getElementById("placeInputs");
+      const coordInputs = document.getElementById("coordInputs");
+
+      if (mode === "place") {
+        placeInputs.style.display = "block";
+        coordInputs.style.display = "none";
+      } else {
+        placeInputs.style.display = "none";
+        coordInputs.style.display = "block";
+      }
+    }
+
+    async function geocodePlace(placeName) {
+      const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(placeName);
+      const response = await fetch(url, {
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Geocoding failed");
+      }
+
+      const data = await response.json();
+
+      if (!data || data.length === 0) {
+        throw new Error("Place not found: " + placeName);
+      }
+
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        name: data[0].display_name
+      };
+    }
+
+    function generateOffsetPath(start, goal, droneIndex, totalDrones, steps = 80) {
+      const path = [];
+      const centerOffset = droneIndex - (totalDrones - 1) / 2;
+      const latSpread = 0.12 * centerOffset;
+      const lngSpread = 0.18 * centerOffset;
+
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const baseLat = start.lat + (goal.lat - start.lat) * t;
+        const baseLng = start.lng + (goal.lng - start.lng) * t;
+        const curve = Math.sin(t * Math.PI);
+
+        path.push([
+          baseLat + latSpread * curve,
+          baseLng + lngSpread * curve
+        ]);
+      }
+
+      return path;
+    }
+
+    function clearMapObjects() {
+      if (startMarker) map.removeLayer(startMarker);
+      if (goalMarker) map.removeLayer(goalMarker);
+      if (routeLine) map.removeLayer(routeLine);
+
+      state.drones.forEach(drone => {
+        if (drone.marker) map.removeLayer(drone.marker);
+      });
+
+      startMarker = null;
+      goalMarker = null;
+      routeLine = null;
+    }
+
+    function resetStateValues() {
+      const count = parseInt(document.getElementById("droneCount").value, 10);
+      state.pending = count;
+      state.inFlight = 0;
+      state.completed = 0;
+      state.cancelled = 0;
+      state.collisionsAvoided = 0;
+      state.drones = [];
+    }
+
+    function createCharts() {
+      rewardChart = new Chart(document.getElementById("rewardChart"), {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: []
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false
+        }
+      });
+
+      batteryChart = new Chart(document.getElementById("batteryChart"), {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Battery",
+            data: [],
+            backgroundColor: []
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
+        }
+      });
+
+      taskChart = new Chart(document.getElementById("taskChart"), {
+        type: "doughnut",
+        data: {
+          labels: ["Pending", "In-Flight", "Completed", "Cancelled"],
+          datasets: [{
+            data: [2, 0, 0, 0],
+            backgroundColor: ["#facc15", "#60a5fa", "#4ade80", "#fb7185"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false
+        }
+      });
+    }
+
+    function resetCharts() {
+      rewardChart.data.labels = [];
+      rewardChart.data.datasets = state.drones.map(drone => ({
+        label: drone.name,
+        data: [],
+        borderColor: drone.color,
+        backgroundColor: drone.color + "33",
+        fill: false,
+        tension: 0.3
+      }));
+      rewardChart.update();
+
+      batteryChart.data.labels = state.drones.map(d => d.name);
+      batteryChart.data.datasets[0].data = state.drones.map(d => Math.round(d.battery));
+      batteryChart.data.datasets[0].backgroundColor = state.drones.map(d => d.color);
+      batteryChart.update();
+
+      taskChart.data.datasets[0].data = [state.pending, state.inFlight, state.completed, state.cancelled];
+      taskChart.update();
+    }
+
+    function updateCharts() {
+      rewardChart.data.labels.push("T" + tick);
+
+      if (rewardChart.data.labels.length > 20) {
+        rewardChart.data.labels.shift();
+        rewardChart.data.datasets.forEach(dataset => dataset.data.shift());
+      }
+
+      state.drones.forEach((drone, index) => {
+        if (rewardChart.data.datasets[index]) {
+          rewardChart.data.datasets[index].data.push(drone.reward);
+        }
+      });
+
+      batteryChart.data.labels = state.drones.map(d => d.name);
+      batteryChart.data.datasets[0].data = state.drones.map(d => Math.round(d.battery));
+      batteryChart.data.datasets[0].backgroundColor = state.drones.map(d => d.color);
+
+      taskChart.data.datasets[0].data = [
+        state.pending,
+        state.inFlight,
+        state.completed,
+        state.cancelled
+      ];
+
+      rewardChart.update();
+      batteryChart.update();
+      taskChart.update();
+    }
+
+    function buildLeaderboard() {
+      const tbody = document.getElementById("leaderboardBody");
+      tbody.innerHTML = "";
+
+      const sorted = [...state.drones].sort((a, b) => b.reward - a.reward);
+
+      sorted.forEach((drone, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${drone.name}</td>
+          <td>${drone.deliveries}</td>
+          <td>${drone.reward}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderAll() {
+      document.getElementById("tickValue").textContent = tick;
+      document.getElementById("pendingCount").textContent = state.pending;
+      document.getElementById("inFlightCount").textContent = state.inFlight;
+      document.getElementById("completedCount").textContent = state.completed;
+      document.getElementById("cancelledCount").textContent = state.cancelled;
+
+      const totalDistance = state.drones.reduce((sum, drone) => sum + drone.distance, 0);
+      const totalBattery = state.drones.reduce((sum, drone) => sum + drone.battery, 0);
+      const avgBattery = state.drones.length ? Math.round(totalBattery / state.drones.length) : 100;
+      const totalDeliveries = state.drones.reduce((sum, drone) => sum + drone.deliveries, 0);
+
+      document.getElementById("totalDistance").textContent = totalDistance;
+      document.getElementById("avgBattery").textContent = avgBattery + "%";
+      document.getElementById("collisionsAvoided").textContent = state.collisionsAvoided;
+      document.getElementById("deliveriesDone").textContent = totalDeliveries;
+
+      buildLeaderboard();
+    }
+
+    async function getMissionPoints() {
+      const mode = document.getElementById("inputMode").value;
+
+      if (mode === "place") {
+        const startPlace = document.getElementById("startPlace").value.trim();
+        const goalPlace = document.getElementById("goalPlace").value.trim();
+
+        if (!startPlace || !goalPlace) {
+          throw new Error("Enter both place names");
+        }
+
+        const start = await geocodePlace(startPlace);
+        const goal = await geocodePlace(goalPlace);
+
+        return {
+          start,
+          goal
+        };
+      }
+
+      const startLat = parseFloat(document.getElementById("startLat").value);
+      const startLng = parseFloat(document.getElementById("startLng").value);
+      const goalLat = parseFloat(document.getElementById("goalLat").value);
+      const goalLng = parseFloat(document.getElementById("goalLng").value);
+
+      if (
+        isNaN(startLat) || isNaN(startLng) ||
+        isNaN(goalLat) || isNaN(goalLng)
+      ) {
+        throw new Error("Enter valid coordinates");
+      }
+
+      return {
+        start: {
+          lat: startLat,
+          lng: startLng,
+          name: `(${startLat.toFixed(4)}, ${startLng.toFixed(4)})`
+        },
+        goal: {
+          lat: goalLat,
+          lng: goalLng,
+          name: `(${goalLat.toFixed(4)}, ${goalLng.toFixed(4)})`
+        }
+      };
+    }
+
+    async function buildMission() {
+      try {
+        document.getElementById("statusText").textContent = "Preparing...";
+
+        const { start, goal } = await getMissionPoints();
+        const droneCount = parseInt(document.getElementById("droneCount").value, 10);
+
+        state.startLabel = start.name;
+        state.goalLabel = goal.name;
+
+        clearMapObjects();
+        resetStateValues();
+
+        startMarker = L.marker([start.lat, start.lng]).addTo(map).bindPopup("Start: " + state.startLabel);
+        goalMarker = L.marker([goal.lat, goal.lng]).addTo(map).bindPopup("Destination: " + state.goalLabel);
+
+        routeLine = L.polyline(
+          [[start.lat, start.lng], [goal.lat, goal.lng]],
+          {
+            color: "#6366f1",
+            weight: 4,
+            opacity: 0.6,
+            dashArray: "10, 10"
+          }
+        ).addTo(map);
+
+        for (let i = 0; i < droneCount; i++) {
+          const path = generateOffsetPath(start, goal, i, droneCount, 80);
+
+          const marker = L.marker(path[0], {
+            icon: createDroneIcon(droneColors[i % droneColors.length], i + 1)
+          }).addTo(map);
+
+          state.drones.push({
+            id: i + 1,
+            name: "D-" + (i + 1),
+            color: droneColors[i % droneColors.length],
+            marker: marker,
+            path: path,
+            currentStep: 0,
+            battery: 100,
+            reward: 0,
+            deliveries: 0,
+            distance: 0,
+            completed: false
+          });
+        }
+
+        map.fitBounds(
+          L.latLngBounds([
+            [start.lat, start.lng],
+            [goal.lat, goal.lng]
+          ]),
+          { padding: [50, 50] }
+        );
+
+        tick = 0;
+        document.getElementById("tickValue").textContent = "0";
+        resetCharts();
+        renderAll();
+        updateCharts();
+        document.getElementById("statusText").textContent = "Ready";
+        return true;
+      } catch (error) {
+        document.getElementById("statusText").textContent = "Error";
+        alert(error.message);
+        return false;
+      }
+    }
+
+    function moveDrones() {
+      if (!state.drones.length) return;
+
+      tick++;
+      document.getElementById("tickValue").textContent = tick;
+
+      state.drones.forEach((drone, index) => {
+        if (drone.completed) return;
+
+        if (drone.currentStep < drone.path.length) {
+          const point = drone.path[drone.currentStep];
+          drone.marker.setLatLng(point);
+          drone.currentStep++;
+          drone.distance = drone.currentStep;
+
+          const drain =
+            0.45 +
+            state.wind * 0.4 +
+            state.rain * 0.25 +
+            state.traffic * 0.3 +
+            index * 0.04;
+
+          drone.battery = Math.max(0, drone.battery - drain);
+          drone.reward = Math.max(0, Math.round(drone.battery + drone.deliveries * 20));
+
+          if ((tick + index) % 6 === 0) {
+            state.collisionsAvoided += 1;
+          }
+
+          if (drone.currentStep >= drone.path.length) {
+            drone.completed = true;
+            drone.deliveries = 1;
+            drone.reward = 100;
+          }
+        }
+      });
+
+      state.inFlight = state.drones.filter(d => !d.completed).length;
+      state.completed = state.drones.filter(d => d.completed).length;
+      state.pending = 0;
+
+      if (state.completed === state.drones.length) {
+        clearInterval(timer);
+        timer = null;
+        running = false;
+        document.getElementById("statusText").textContent = "Completed";
+      } else {
+        document.getElementById("statusText").textContent = "Live";
+      }
+
+      renderAll();
+      updateCharts();
+    }
+
+    async function startSimulation() {
+      if (running) return;
+
+      if (!state.drones.length) {
+        const ok = await buildMission();
+        if (!ok) return;
+      }
+
+      running = true;
+      document.getElementById("statusText").textContent = "Live";
+
+      const interval = Math.max(100, 1000 / speedMultiplier);
+      timer = setInterval(moveDrones, interval);
+    }
+
+    function pauseSimulation() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      running = false;
+      document.getElementById("statusText").textContent = "Paused";
+    }
+
+    async function resetSimulation() {
+      pauseSimulation();
+      await buildMission();
+    }
+
+    function bindEvents() {
+      document.getElementById("startBtn").addEventListener("click", startSimulation);
+      document.getElementById("pauseBtn").addEventListener("click", pauseSimulation);
+      document.getElementById("resetBtn").addEventListener("click", resetSimulation);
+
+      document.getElementById("inputMode").addEventListener("change", toggleInputMode);
+
+      document.getElementById("applyEnvBtn").addEventListener("click", () => {
+        state.wind = parseFloat(document.getElementById("windSlider").value);
+        state.rain = parseFloat(document.getElementById("rainSlider").value);
+        state.traffic = parseFloat(document.getElementById("trafficSlider").value);
+        document.getElementById("statusText").textContent = "Environment Applied";
+      });
+
+      document.getElementById("windSlider").addEventListener("input", e => {
+        document.getElementById("windValue").textContent = Number(e.target.value).toFixed(2);
+      });
+
+      document.getElementById("rainSlider").addEventListener("input", e => {
+        document.getElementById("rainValue").textContent = Number(e.target.value).toFixed(2);
+      });
+
+      document.getElementById("trafficSlider").addEventListener("input", e => {
+        document.getElementById("trafficValue").textContent = Number(e.target.value).toFixed(2);
+      });
+
+      document.getElementById("droneCount").addEventListener("input", e => {
+        document.getElementById("droneCountValue").textContent = e.target.value;
+      });
+
+      document.querySelectorAll(".speed-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".speed-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          speedMultiplier = parseInt(btn.dataset.speed, 10);
+
+          if (running) {
+            clearInterval(timer);
+            timer = setInterval(moveDrones, Math.max(100, 1000 / speedMultiplier));
+          }
+        });
+      });
+    }
+
+    window.addEventListener("load", async () => {
+      initMap();
+      createCharts();
+      bindEvents();
+      toggleInputMode();
+      document.getElementById("droneCountValue").textContent = document.getElementById("droneCount").value;
+      await buildMission();
+    });
+  </script>
+</body>
+</html>
